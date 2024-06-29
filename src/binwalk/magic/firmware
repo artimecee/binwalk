@@ -1006,6 +1006,7 @@
 >>200   lelong      x                                                                           Header CRC: 0x%X
 >212    ulelong     0x1
 >>216   lelong      x                                                                           Header CRC: 0x%X
+>220    sdate       x                                                                           Created: %s
 
 # ARM update header (used with JBOOT bootloader)
 # More info in file: https://github.com/openwrt/openwrt/blob/master/tools/firmware-utils/src/mkdlinkfw.c
