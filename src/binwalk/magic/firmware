@@ -1072,8 +1072,16 @@
 # https://github.com/espressif/esp-idf
 0       ubyte               0xe9            ESP Image
 >11     ushort              0x0000          (ESP32):
->11     ushort              0x0002          (ESP3252):
->11     ushort              >0x0002         {invalid}
+>11     ushort              0x0002          (ESP32-S2):
+>11     ushort              0x0005          (ESP32-C3):
+>11     ushort              0x0009          (ESP32-S3):
+>11     ushort              0x000C          (ESP32-C2):
+>11     ushort              0x000D          (ESP32-C6):
+>11     ushort              0x0010          (ESP32-H2):
+>11     ushort              0x0012          (ESP32-P4):
+>11     ushort              0x0017          (ESP32-C5):
+>11     ushort              >0x0017         {invalid}
+>1      ubyte               0               {invalid}
 >1      ubyte               <16             segment count: %d,
 >1      ubyte               >16             {invalid}
 >2      ubyte               >5              {invalid}
@@ -1092,9 +1100,14 @@
 >3      ubyte>>4            2               flash size: 4MB,
 >3      ubyte>>4            3               flash size: 8MB,
 >3      ubyte>>4            4               flash size: 16MB,
->3      ubyte>>4            5               flash size: MAX,
->3      ubyte>>4            >5              {invalid}
+>3      ubyte>>4            5               flash size: 32MB,
+>3      ubyte>>4            6               flash size: 64MB,
+>3      ubyte>>4            7               flash size: 128MB,
+>3      ubyte>>4            >7              {invalid}
 >4      ulelong             x               entry address: 0x%x
+>23     ubyte               >1              {invalid}
+>23     ubyte               0               hash: none
+>23     ubyte               1               hash: sha256,
 
 
 # ESP32 Partition Table Entry
