@@ -1104,10 +1104,10 @@
 >3      ubyte>>4            6               flash size: 64MB,
 >3      ubyte>>4            7               flash size: 128MB,
 >3      ubyte>>4            >7              {invalid}
->4      ulelong             x               entry address: 0x%x
+>4      ulelong             x               entry address: 0x%x,
 >23     ubyte               >1              {invalid}
 >23     ubyte               0               hash: none
->23     ubyte               1               hash: sha256,
+>23     ubyte               1               hash: sha256
 
 
 # ESP32 Partition Table Entry
