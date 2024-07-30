@@ -37,13 +37,9 @@ else
     distro="${2:-$(lsb_release -i|cut -f 2)}"
     distro_version="${2:-$(lsb_release -r|cut -f 2|cut -c1-2)}"
 fi
-REQUIRED_UTILS="wget python"
 APTCMD="apt"
 APTGETCMD="apt-get"
-YUMCMD="yum"
-APT_CANDIDATES="git locales build-essential mtd-utils gzip bzip2 tar arj lhasa p7zip p7zip-full cabextract cramfsswap squashfs-tools zlib1g-dev liblzma-dev liblzo2-dev sleuthkit lzop srecord cpio"
-YUM_CANDIDATES="git gcc gcc-c++ make openssl-devel gzip bzip2 tar arj p7zip p7zip-plugins cabextract squashfs-tools zlib zlib-devel lzo lzo-devel xz xz-compat-libs xz-libs xz-devel xz-lzma-compat python-backports-lzma lzip pyliblzma perl-Compress-Raw-Lzma lzop srecord"
-PYTHON="$(which python3)"
+APT_CANDIDATES="git locales build-essential mtd-utils gzip bzip2 tar arj lhasa p7zip p7zip-full python3-setuptools python3-matplotlib python3-capstone python3-pycryptodome python3-gnupg python3-poetry pipx cabextract cramfsswap squashfs-tools zlib1g-dev liblzma-dev liblzo2-dev sleuthkit lzop srecord cpio wget"
 
 # Check for root privileges
 if [ $UID -eq 0 ]
@@ -52,14 +48,13 @@ then
     SUDO=""
 else
     SUDO="sudo -E"
-    REQUIRED_UTILS="sudo $REQUIRED_UTILS"
 fi
 
 install_yaffshiv()
 {
     git clone --quiet --depth 1 --branch "master" https://github.com/devttys0/yaffshiv
-    (cd yaffshiv && $SUDO $PYTHON setup.py install)
-    $SUDO rm -rf yaffshiv
+    (cd yaffshiv && python3 setup.py install --user)
+    rm -rf yaffshiv
 }
 
 install_sasquatch()
@@ -69,14 +64,14 @@ install_sasquatch()
         wget https://github.com/devttys0/sasquatch/pull/47.patch &&
         patch -p1 < 47.patch &&
         $SUDO ./build.sh)
-    $SUDO rm -rf sasquatch
+    rm -rf sasquatch
 }
 
 install_jefferson()
 {
     git clone --quiet --depth 1 --branch "master" https://github.com/onekey-sec/jefferson
-    (cd jefferson && $PYTHON -mpip install --user jefferson)
-    $SUDO rm -rf jefferson
+    (cd jefferson && pipx install jefferson)
+    rm -rf jefferson
 }
 
 install_cramfstools()
@@ -99,7 +94,7 @@ install_cramfstools()
 install_pip_package()
 {
     PACKAGE="$1"
-    $SUDO $PYTHON -mpip install $PACKAGE
+    pipx install $PACKAGE
 }
 
 find_path()
@@ -149,34 +144,13 @@ else
     echo "WARNING: Distro not detected, using package-manager defaults"
 fi
 
-# Check to make sure we have all the required utilities installed
-NEEDED_UTILS=""
-for UTIL in $REQUIRED_UTILS
-do
-    find_path $UTIL
-    if [ $? -eq 1 ]
-    then
-        NEEDED_UTILS="$NEEDED_UTILS $UTIL"
-    fi
-done
-
 # Check for supported package managers and set the PKG_* envars appropriately
 find_path $APTCMD
 if [ $? -eq 1 ]
 then
     find_path $APTGETCMD
-    if [ $? -eq 1 ]
+    if [ $? -ne 1 ]
     then
-        find_path $YUMCMD
-        if [ $? -eq 1 ]
-        then
-            NEEDED_UTILS="$NEEDED_UTILS $APTCMD/$APTGETCMD/$YUMCMD"
-        else
-            PKGCMD="$YUMCMD"
-            PKGCMD_OPTS="-y install"
-            PKG_CANDIDATES="$YUM_CANDIDATES"
-        fi
-    else
         PKGCMD="$APTGETCMD"
         PKGCMD_OPTS="install -y"
         PKG_CANDIDATES="$APT_CANDIDATES"
@@ -194,21 +168,17 @@ else
     fi
 fi
 
-if [ "$NEEDED_UTILS" != "" ]
-then
-    echo "Please install the following required utilities: $NEEDED_UTILS"
-    exit 1
-fi
+# Install system packages
+$SUDO $PKGCMD $PKGCMD_OPTS $PKG_CANDIDATES
 
 # Do the install(s)
 cd /tmp
-$SUDO $PKGCMD $PKGCMD_OPTS $PKG_CANDIDATES
 if [ $? -ne 0 ]
     then
     echo "Package installation failed: $PKG_CANDIDATES"
     exit 1
 fi
-install_pip_package "setuptools matplotlib capstone pycryptodome gnupg ubi_reader poetry"
+install_pip_package "ubi_reader"
 install_sasquatch
 install_yaffshiv
 install_jefferson
