@@ -39,7 +39,7 @@ else
 fi
 APTCMD="apt"
 APTGETCMD="apt-get"
-APT_CANDIDATES="git locales build-essential mtd-utils gzip bzip2 tar arj lhasa p7zip p7zip-full python3-setuptools python3-matplotlib python3-capstone python3-pycryptodome python3-gnupg python3-poetry pipx cabextract cramfsswap squashfs-tools zlib1g-dev liblzma-dev liblzo2-dev sleuthkit lzop srecord cpio wget"
+APT_CANDIDATES="arj build-essential bzip2 cabextract cpio cramfsswap git gzip lhasa liblzma-dev liblzo2-dev locales lzop mtd-utils p7zip p7zip-full python3-distutils python3-setuptools python3-matplotlib python3-capstone python3-pycryptodome python3-gnupg python3-poetry pipx squashfs-tools sleuthkit srecord tar wget zlib1g-dev"
 
 # Check for root privileges
 if [ $UID -eq 0 ]
@@ -53,7 +53,7 @@ fi
 install_yaffshiv()
 {
     git clone --quiet --depth 1 --branch "master" https://github.com/devttys0/yaffshiv
-    (cd yaffshiv && python3 setup.py install --user)
+    (cd yaffshiv && pipx install .)
     rm -rf yaffshiv
 }
 
@@ -63,15 +63,8 @@ install_sasquatch()
     (cd sasquatch &&
         wget https://github.com/devttys0/sasquatch/pull/47.patch &&
         patch -p1 < 47.patch &&
-        $SUDO ./build.sh)
+        ./build.sh)
     rm -rf sasquatch
-}
-
-install_jefferson()
-{
-    git clone --quiet --depth 1 --branch "master" https://github.com/onekey-sec/jefferson
-    (cd jefferson && pipx install jefferson)
-    rm -rf jefferson
 }
 
 install_cramfstools()
@@ -85,7 +78,6 @@ install_cramfstools()
   # There is no "make install"
   (cd cramfs-tools \
   && make \
-  && $SUDO install mkcramfs $INSTALL_LOCATION \
   && $SUDO install cramfsck $INSTALL_LOCATION)
 
   rm -rf cramfs-tools
@@ -178,9 +170,10 @@ if [ $? -ne 0 ]
     echo "Package installation failed: $PKG_CANDIDATES"
     exit 1
 fi
-install_pip_package "ubi_reader"
+
+install_pip_package ubi_reader
+install_pip_package jefferson
 install_sasquatch
 install_yaffshiv
-install_jefferson
 install_cramfstools
 
