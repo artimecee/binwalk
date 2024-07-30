@@ -266,21 +266,6 @@ complete -F _binwalk binwalk'''
         with open(autocomplete_file_path, "w") as fp:
             fp.write(auto_complete % ' '.join(options))
 
-class TestCommand(Command):
-    description = "Run unit-tests"
-    user_options = []
-
-    def initialize_options(self):
-        pass
-
-    def finalize_options(self):
-        pass
-
-    def run(self):
-        if os.system("py.test --cov=binwalk testing") != 0:
-            sys.exit(1)
-
-
 this_directory = os.path.abspath(os.path.dirname(__file__))
 with io.open(os.path.join(this_directory, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
@@ -308,6 +293,5 @@ setup(
         'idainstall': IDAInstallCommand,
         'idauninstall': IDAUnInstallCommand,
         'autocomplete' : AutoCompleteCommand,
-        'test': TestCommand,
     },
 )
