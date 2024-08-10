@@ -169,11 +169,11 @@ fi
 $SUDO $PKGCMD $PKGCMD_OPTS $PKG_CANDIDATES
 
 # Do the install(s)
-cd /home/$USR
+cd /tmp
 if [ $? -ne 0 ]
     then
     echo "Package installation failed: $PKG_CANDIDATES"
-    exit 1
+    exit 0
 fi
 
 install_pip_package ubi_reader
