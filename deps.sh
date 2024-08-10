@@ -52,7 +52,7 @@ fi
 
 install_yaffshiv()
 {
-    git clone --quiet --depth 1 --branch "master" https://github.com/devttys0/yaffshiv /home/$USR
+    git clone --quiet --depth 1 --branch "master" https://github.com/devttys0/yaffshiv
     (cd yaffshiv && python setup.py install .)
     rm -rf yaffshiv
 }
