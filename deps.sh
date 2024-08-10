@@ -91,7 +91,7 @@ install_cramfstools()
 install_pip_package()
 {
     PACKAGE="$1"
-    pipx install $PACKAGE
+    pip3 install $PACKAGE
 }
 
 find_path()
