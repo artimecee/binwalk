@@ -169,7 +169,7 @@ fi
 $SUDO $PKGCMD $PKGCMD_OPTS $PKG_CANDIDATES
 
 # Do the install(s)
-cd ~
+cd /home/$USR
 if [ $? -ne 0 ]
     then
     echo "Package installation failed: $PKG_CANDIDATES"
