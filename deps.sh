@@ -39,7 +39,7 @@ else
 fi
 APTCMD="apt"
 APTGETCMD="apt-get"
-APT_CANDIDATES="arj build-essential bzip2 cabextract cpio cramfsswap git gzip lhasa liblzma-dev liblzo2-dev locales lzop mtd-utils p7zip p7zip-full python3-distutils python3-setuptools python3-matplotlib python3-capstone python3-pycryptodome python3-gnupg python3-poetry pipx squashfs-tools sleuthkit srecord tar wget zlib1g-dev"
+APT_CANDIDATES="arj build-essential bzip2 cabextract cpio cramfsswap git gzip lhasa liblzma-dev liblzo2-dev locales lzop mtd-utils p7zip p7zip-full python3-distutils python3-setuptools python3-matplotlib python3-capstone python3-pycryptodome python3-gnupg pipx squashfs-tools sleuthkit srecord tar wget zlib1g-dev"
 
 # Check for root privileges
 if [ $UID -eq 0 ]
@@ -81,6 +81,11 @@ install_cramfstools()
   && $SUDO install cramfsck $INSTALL_LOCATION)
 
   rm -rf cramfs-tools
+}
+
+install_cramfstools()
+{
+(curl -sSL https://install.python-poetry.org | python3 -)
 }
 
 install_pip_package()
