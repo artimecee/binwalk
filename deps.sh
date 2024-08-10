@@ -173,7 +173,7 @@ cd /tmp
 if [ $? -ne 0 ]
     then
     echo "Package installation failed: $PKG_CANDIDATES"
-    exit 0
+    exit 1
 fi
 
 install_pip_package ubi_reader
