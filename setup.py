@@ -52,7 +52,12 @@ fi
 
 install_yaffshiv()
 {
-    cd yaffshiv && pip3 install yaffshiv
+    pip3 install yaffshiv
+}
+
+install_yaffshiv()
+{
+    pip3 install jefferson
 }
 
 install_sasquatch()
