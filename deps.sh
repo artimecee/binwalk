@@ -177,7 +177,6 @@ if [ $? -ne 0 ]
 fi
 
 install_pip_package ubi_reader
-install_pip_package jefferson
 install_sasquatch
 install_yaffshiv
 install_cramfstools
