@@ -50,12 +50,6 @@ else
     SUDO="sudo -E"
 fi
 
-install_yaffshiv()
-{
-    git clone --quiet --depth 1 --branch "master" https://github.com/devttys0/yaffshiv
-    (cd yaffshiv && python setup.py install)
-    rm -rf yaffshiv
-}
 
 install_sasquatch()
 {
@@ -178,6 +172,5 @@ fi
 
 install_pip_package ubi_reader
 install_sasquatch
-install_yaffshiv
 install_cramfstools
 
