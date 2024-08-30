@@ -1,297 +1,176 @@
-#!/usr/bin/env python3
-import io
-import os
-import sys
-import shutil
-import subprocess
-from setuptools import setup, Command, find_packages
-from distutils.dir_util import remove_tree
+#!/bin/bash
 
-MODULE_NAME = "binwalk"
-MODULE_VERSION = "2.4.2"
-SCRIPT_NAME = MODULE_NAME
-MODULE_DIRECTORY = os.path.dirname(os.path.realpath(__file__))
+# Check for the --yes command line argument to skip yes/no prompts
+if [ "$1" = "--yes" ]
+then
+    YES=1
+else
+    YES=0
+fi
 
-# Python3 has a built-in DEVNULL; for Python2, we have to open
-# os.devnull to redirect subprocess stderr output to the ether.
-try:
-    from subprocess import DEVNULL
-except ImportError:
-    DEVNULL = open(os.devnull, 'wb')
+set -eu
+set -o nounset
+set -x
 
-# If this version of binwalk was checked out from the git repository,
-# include the git commit hash as part of the version number reported
-# by binwalk.
-try:
-    label = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"], stderr=DEVNULL).decode('utf-8')
-    MODULE_VERSION = "%s+%s" % (MODULE_VERSION, label.strip())
-except KeyboardInterrupt:
-    raise
-except Exception:
-    pass
+if ! which lsb_release > /dev/null
+then
+    lsb_release() {
+        if [ -f /etc/os-release ]
+        then
+            [[ "$1" = "-i" ]] && cat /etc/os-release | grep ^"ID" | cut -d= -f 2
+            [[ "$1" = "-r" ]] && cat /etc/os-release | grep "VERSION_ID" | cut -d= -d'"' -f 2
+        elif [ -f /etc/lsb-release ]
+        then
+            [[ "$1" = "-i" ]] && cat /etc/lsb-release | grep "DISTRIB_ID" | cut -d= -f 2
+            [[ "$1" = "-r" ]] && cat /etc/lsb-release | grep "DISTRIB_RELEASE" | cut -d= -f 2
+        else
+            echo Unknown
+        fi
+    }
+fi
 
+if [ $YES -eq 0 ]
+then
+    distro="${1:-$(lsb_release -i|cut -f 2)}"
+    distro_version="${1:-$(lsb_release -r|cut -f 2|cut -c1-2)}"
+else
+    distro="${2:-$(lsb_release -i|cut -f 2)}"
+    distro_version="${2:-$(lsb_release -r|cut -f 2|cut -c1-2)}"
+fi
+APTCMD="apt"
+APTGETCMD="apt-get"
+APT_CANDIDATES="arj build-essential bzip2 cabextract cpio cramfsswap git gzip lhasa liblzma-dev liblzo2-dev locales lzop mtd-utils p7zip p7zip-full python3-distutils python3-setuptools python3-matplotlib python3-capstone python3-pycryptodome python3-gnupg python3-poetry pipx squashfs-tools sleuthkit srecord tar wget zlib1g-dev"
 
-def which(command):
-    # /usr/local/bin is usually the default install path, though it may not be in $PATH
-    usr_local_bin = os.path.sep.join([os.path.sep, 'usr', 'local', 'bin', command])
+# Check for root privileges
+if [ $UID -eq 0 ]
+then
+    echo "UID is 0, sudo not required"
+    SUDO=""
+else
+    SUDO="sudo -E"
+fi
 
-    try:
-        location = subprocess.Popen(
-            ["which", command],
-            shell=False, stdout=subprocess.PIPE).communicate()[0].strip()
-    except KeyboardInterrupt as e:
-        raise e
-    except Exception as e:
-        pass
-
-    if not location and os.path.exists(usr_local_bin):
-        location = usr_local_bin
-
-    return location
-
-
-def find_binwalk_module_paths():
-    paths = []
-
-    try:
-        import binwalk
-        paths = binwalk.__path__
-    except KeyboardInterrupt as e:
-        raise e
-    except Exception:
-        pass
-
-    return paths
-
-
-def remove_binwalk_module(pydir=None, pybin=None):
-    if pydir:
-        module_paths = [pydir]
-    else:
-        module_paths = find_binwalk_module_paths()
-
-    for path in module_paths:
-        try:
-            remove_tree(path)
-        except OSError:
-            pass
-
-    if not pybin:
-        pybin = which(MODULE_NAME)
-
-    if pybin:
-        try:
-            sys.stdout.write("removing '%s'\n" % pybin)
-            os.remove(pybin)
-        except KeyboardInterrupt:
-            pass
-        except Exception:
-            pass
-
-
-class IDAUnInstallCommand(Command):
-    description = "Uninstalls the binwalk IDA plugin module"
-    user_options = [
-        ('idadir=', None, 'Specify the path to your IDA install directory.'),
-    ]
-
-    def initialize_options(self):
-        self.idadir = None
-        self.mydir = os.path.join(os.path.dirname(
-            os.path.realpath(__file__)), "src")
-
-    def finalize_options(self):
-        pass
-
-    def run(self):
-        if self.idadir is None:
-            sys.stderr.write(
-                "Please specify the path to your IDA install directory with the '--idadir' option!\n")
-            return
-
-        binida_dst_path = os.path.join(self.idadir, 'plugins', 'binida.py')
-        binwalk_dst_path = os.path.join(self.idadir, 'python', 'binwalk')
-
-        if os.path.exists(binida_dst_path):
-            sys.stdout.write("removing '%s'\n" % binida_dst_path)
-            os.remove(binida_dst_path)
-        if os.path.exists(binwalk_dst_path):
-            sys.stdout.write("removing '%s'\n" % binwalk_dst_path)
-            shutil.rmtree(binwalk_dst_path)
-
-
-class IDAInstallCommand(Command):
-    description = "Installs the binwalk IDA plugin module"
-    user_options = [
-        ('idadir=', None, 'Specify the path to your IDA install directory.'),
-    ]
-
-    def initialize_options(self):
-        self.idadir = None
-        self.mydir = os.path.join(os.path.dirname(
-            os.path.realpath(__file__)), "src")
-
-    def finalize_options(self):
-        pass
-
-    def run(self):
-        if self.idadir is None:
-            sys.stderr.write(
-                "Please specify the path to your IDA install directory with the '--idadir' option!\n")
-            return
-
-        binida_src_path = os.path.join(self.mydir, 'scripts', 'binida.py')
-        binida_dst_path = os.path.join(self.idadir, 'plugins')
-
-        if not os.path.exists(binida_src_path):
-            sys.stderr.write(
-                "ERROR: could not locate IDA plugin file '%s'!\n" %
-                binida_src_path)
-            return
-        if not os.path.exists(binida_dst_path):
-            sys.stderr.write(
-                "ERROR: could not locate the IDA plugins directory '%s'! Check your --idadir option.\n" %
-                binida_dst_path)
-            return
-
-        binwalk_src_path = os.path.join(self.mydir, 'binwalk')
-        binwalk_dst_path = os.path.join(self.idadir, 'python')
-
-        if not os.path.exists(binwalk_src_path):
-            sys.stderr.write(
-                "ERROR: could not locate binwalk source directory '%s'!\n" %
-                binwalk_src_path)
-            return
-        if not os.path.exists(binwalk_dst_path):
-            sys.stderr.write(
-                "ERROR: could not locate the IDA python directory '%s'! Check your --idadir option.\n" %
-                binwalk_dst_path)
-            return
-
-        binida_dst_path = os.path.join(binida_dst_path, 'binida.py')
-        binwalk_dst_path = os.path.join(binwalk_dst_path, 'binwalk')
-
-        if os.path.exists(binida_dst_path):
-            os.remove(binida_dst_path)
-        if os.path.exists(binwalk_dst_path):
-            shutil.rmtree(binwalk_dst_path)
-
-        sys.stdout.write("copying %s -> %s\n" %
-                         (binida_src_path, binida_dst_path))
-        shutil.copyfile(binida_src_path, binida_dst_path)
-
-        sys.stdout.write("copying %s -> %s\n" %
-                         (binwalk_src_path, binwalk_dst_path))
-        shutil.copytree(binwalk_src_path, binwalk_dst_path)
-
-
-class UninstallCommand(Command):
-    description = "Uninstalls the Python module"
-    user_options = [
-        ('pydir=', None, 'Specify the path to the binwalk python module to be removed.'),
-        ('pybin=', None, 'Specify the path to the binwalk executable to be removed.'),
-    ]
-
-    def initialize_options(self):
-        self.pydir = None
-        self.pybin = None
-
-    def finalize_options(self):
-        pass
-
-    def run(self):
-        remove_binwalk_module(self.pydir, self.pybin)
-
-
-class CleanCommand(Command):
-    description = "Clean Python build directories"
-    user_options = []
-
-    def initialize_options(self):
-        pass
-
-    def finalize_options(self):
-        pass
-
-    def run(self):
-        try:
-            remove_tree(os.path.join(MODULE_DIRECTORY, "build"))
-        except KeyboardInterrupt as e:
-            raise e
-        except Exception:
-            pass
-
-        try:
-            remove_tree(os.path.join(MODULE_DIRECTORY, "dist"))
-        except KeyboardInterrupt as e:
-            raise e
-        except Exception:
-            pass
-
-
-class AutoCompleteCommand(Command):
-    description = "Install bash autocomplete file"
-    user_options = []
-
-    def initialize_options(self):
-        pass
-
-    def finalize_options(self):
-        pass
-
-    def run(self):
-        options = []
-        autocomplete_file_path = "/etc/bash_completion.d/%s" % MODULE_NAME
-        auto_complete = '''_binwalk()
+install_yaffshiv()
 {
-    local cur prev opts
-    COMPREPLY=()
-    cur="${COMP_WORDS[COMP_CWORD]}"
-    prev="${COMP_WORDS[COMP_CWORD-1]}"
-    opts="%s"
+    cd yaffshiv && pip3 install yaffshiv
+}
 
-    if [[ ${cur} == -* ]] ; then
-        COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+install_sasquatch()
+{
+    git clone --quiet --depth 1 --branch "master" https://github.com/devttys0/sasquatch
+    (cd sasquatch &&
+        wget https://github.com/devttys0/sasquatch/pull/47.patch &&
+        patch -p1 < 47.patch &&
+        ./build.sh)
+    rm -rf sasquatch
+}
+
+install_cramfstools()
+{
+  # Downloads cramfs tools from sourceforge and installs them to $INSTALL_LOCATION
+  TIME=`date +%s`
+  INSTALL_LOCATION=/usr/local/bin
+
+  # https://github.com/torvalds/linux/blob/master/fs/cramfs/README#L106
+  git clone --quiet --depth 1 --branch "master" https://github.com/npitre/cramfs-tools
+  # There is no "make install"
+  (cd cramfs-tools \
+  && make \
+  && $SUDO install cramfsck $INSTALL_LOCATION)
+
+  rm -rf cramfs-tools
+}
+
+install_pip_package()
+{
+    PACKAGE="$1"
+    pipx install $PACKAGE
+}
+
+find_path()
+{
+    FILE_NAME="$1"
+
+    echo -ne "checking for $FILE_NAME..."
+    which $FILE_NAME > /dev/null
+    if [ $? -eq 0 ]
+    then
+        echo "yes"
         return 0
+    else
+        echo "no"
+        return 1
     fi
 }
-complete -F _binwalk binwalk'''
 
-        (out, err) = subprocess.Popen(["binwalk", "--help"], stdout=subprocess.PIPE).communicate()
-        for line in out.splitlines():
-            if b'--' in line:
-                long_opt = line.split(b'--')[1].split(b'=')[0].split()[0].strip()
-                options.append('--' + long_opt.decode('utf-8'))
+# Make sure the user really wants to do this
+if [ $YES -eq 0 ]
+then
+    echo ""
+    echo "WARNING: This script will download and install all required and optional dependencies for binwalk."
+    echo "         This script has only been tested on, and is only intended for, Debian based systems."
+    echo "         Some dependencies are downloaded via unsecure (HTTP) protocols."
+    echo "         This script requires internet access."
+    echo "         This script requires root privileges."
+    echo ""
+    if [ "$distro" != Unknown ]
+    then
+        echo "         $distro $distro_version detected"
+    else
+        echo "WARNING: Distro not detected, using package-manager defaults"
+    fi
+    echo ""
+    echo -n "Continue [y/N]? "
+    read YN
+    if [ "$(echo "$YN" | grep -i -e 'y' -e 'yes')" == "" ]
+    then
+        echo "Quitting..."
+        exit 1
+    fi
+elif [ "$distro" != Unknown ]
+then
+     echo "$distro $distro_version detected"
+else
+    echo "WARNING: Distro not detected, using package-manager defaults"
+fi
 
-        with open(autocomplete_file_path, "w") as fp:
-            fp.write(auto_complete % ' '.join(options))
+# Check for supported package managers and set the PKG_* envars appropriately
+find_path $APTCMD
+if [ $? -eq 1 ]
+then
+    find_path $APTGETCMD
+    if [ $? -ne 1 ]
+    then
+        PKGCMD="$APTGETCMD"
+        PKGCMD_OPTS="install -y"
+        PKG_CANDIDATES="$APT_CANDIDATES"
+    fi
+else
+    if "$APTCMD" install -s -y dpkg > /dev/null
+    then
+        PKGCMD="$APTCMD"
+        PKGCMD_OPTS="install -y"
+        PKG_CANDIDATES="$APT_CANDIDATES"
+    else
+        PKGCMD="$APTGETCMD"
+        PKGCMD_OPTS="install -y"
+        PKG_CANDIDATES="$APT_CANDIDATES"
+    fi
+fi
 
-this_directory = os.path.abspath(os.path.dirname(__file__))
-with io.open(os.path.join(this_directory, 'README.md'), encoding='utf-8') as f:
-    long_description = f.read()
+# Install system packages
+$SUDO $PKGCMD $PKGCMD_OPTS $PKG_CANDIDATES
 
-# Install the module, script, and support files
-setup(
-    name=MODULE_NAME,
-    version=MODULE_VERSION,
-    description="Firmware analysis tool",
-    long_description=long_description,
-    long_description_content_type='text/markdown',
-    author="Craig Heffner",
-    url="https://github.com/OSPG/%s" % MODULE_NAME,
-    requires=[],
-    python_requires=">=3",
-    package_dir={"": "src"},
-    packages=find_packages("src"),
-    include_package_data=True,
-    entry_points={
-        'console_scripts': ['binwalk=binwalk.__main__:main'],
-    },
-    cmdclass={
-        'clean': CleanCommand,
-        'uninstall': UninstallCommand,
-        'idainstall': IDAInstallCommand,
-        'idauninstall': IDAUnInstallCommand,
-        'autocomplete' : AutoCompleteCommand,
-    },
-)
+# Do the install(s)
+cd /tmp
+if [ $? -ne 0 ]
+    then
+    echo "Package installation failed: $PKG_CANDIDATES"
+    exit 1
+fi
+
+install_pip_package ubi_reader
+install_pip_package jefferson
+install_sasquatch
+install_yaffshiv
+install_cramfstools
