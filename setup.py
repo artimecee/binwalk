@@ -50,10 +50,6 @@ else
     SUDO="sudo -E"
 fi
 
-install_yaffshiv()
-{
-    pip3 install yaffshiv
-}
 
 install_sasquatch()
 {
@@ -171,5 +167,4 @@ fi
 
 install_pip_package ubi_reader
 install_sasquatch
-install_yaffshiv
 install_cramfstools
