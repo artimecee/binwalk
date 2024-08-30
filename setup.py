@@ -55,7 +55,7 @@ install_yaffshiv()
     pip3 install yaffshiv
 }
 
-install_yaffshiv()
+install_jefferson()
 {
     pip3 install jefferson
 }
@@ -178,4 +178,5 @@ install_pip_package ubi_reader
 install_pip_package jefferson
 install_sasquatch
 install_yaffshiv
+install_jefferson
 install_cramfstools
